@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import mqttClient from '@/app/lib/mqttClient';
-import PlayerCard from '@/app/ui/dashboard/playerCard'; // Import the PlayerCard component
+import PlayerCard from '@/app/ui/dashboard/playerCard';
+import MtgControls from '@/app/ui/mtg/mtgControls';
+import InitialRollResults from '@/app/ui/mtg/initialRollResults';
 
 export default function GameStatusPage() {
   const [gameStatus, setGameStatus] = useState(null);
@@ -40,29 +42,38 @@ export default function GameStatusPage() {
 
   return (
     <div>
+      {/* Conditionally render the InitialRollResults component if there are no active players */}
+      {gameStatus?.players.length === 0 && <InitialRollResults players={gameStatus.lobby} />}
+      <h1>Game Controls</h1>
+      <MtgControls gameStatus={gameStatus} />
       <h1>Game Status</h1>
       {gameStatus ? (
         <div>
-          {/* Render the current player card */}
+          {/* Render the current player card if currentPlayer exists */}
           {gameStatus.currentPlayer && (
             <PlayerCard
               playerName={gameStatus.currentPlayer.playerName}
               playerHealth={gameStatus.currentPlayer.playerHealth}
-              playerTimer={gameStatus.currentPlayer.playerTimer.timeLeftMin}
+              playerTimer={gameStatus.currentPlayer.playerTimer.timeLeft}
               commanderDmg={gameStatus.currentPlayer.commanderDmg}
               current={true}
+              paused={gameStatus.currentPlayer.playerTimer.paused}
             />
           )}
-          {/* Render player cards for each player in the game */}
-          {gameStatus.players.map((player, index) => (
-            <PlayerCard
-              key={index}
-              playerName={player.playerName}
-              playerHealth={player.playerHealth}
-              playerTimer={player.playerTimer.timeLeftMin}
-              commanderDmg={player.commanderDmg}
-              current={false}
-            />
+          {/* Render player cards for each player in the game except currentPlayer */}
+          {gameStatus.currentPlayer && gameStatus.players.map((player, index) => (
+            // Check if player is not the currentPlayer
+            player.playerUid !== gameStatus.currentPlayer.playerUid && (
+              <PlayerCard
+                key={index}
+                playerName={player.playerName}
+                playerHealth={player.playerHealth}
+                playerTimer={player.playerTimer.timeLeft}
+                commanderDmg={player.commanderDmg}
+                current={false}
+                paused={player.playerTimer.paused}
+              />
+            )
           ))}
           {/* Render player cards for each player in the lobby */}
           <h2>Lobby</h2>
@@ -71,9 +82,10 @@ export default function GameStatusPage() {
               key={index}
               playerName={player.playerName}
               playerHealth={player.playerHealth}
-              playerTimer={player.playerTimer.timeLeftMin}
+              playerTimer={player.playerTimer.timeLeft}
               commanderDmg={player.commanderDmg}
               current={false}
+              paused={player.playerTimer.paused}
             />
           ))}
         </div>
